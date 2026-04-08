@@ -108,6 +108,13 @@
       letter-spacing: 0;
       transform: rotate(-4deg);
     }
+    .brand-tiaohai img {
+      width: 200px;
+      height: auto;
+      display: block;
+      transform: rotate(0deg);
+      filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.25));
+    }
     .brand-tiaohai span {
       display: inline-block;
       padding: 0 1px;
@@ -340,6 +347,7 @@
       .brand-8848 .main { font-size: 20px; letter-spacing: 0.06em; }
       .brand-8848 .sub { font-size: 8px; margin-top: 4px; }
       .brand-tiaohai { font-size: 22px; }
+      .brand-tiaohai img { width: 126px; }
       .hero { text-align: left; padding: 24px 14px 20px; border-radius: 18px; }
       .hero-kicker { font-size: 15px; margin-bottom: 10px; }
       .hero-prompt { font-size: 30px; line-height: 1.25; }
@@ -381,7 +389,7 @@
         </div>
         <div class="brand-x">×</div>
         <div class="logo-right brand-tiaohai" aria-label="跳海酒馆">
-          <span>跳</span><span>海</span><span>酒</span><span>馆</span>
+          <img src="/assets/tiaohai-3.png" alt="跳海酒馆 logo">
         </div>
       </div>
     </div>
@@ -403,7 +411,6 @@
       <div class="actions">
         <button class="primary" id="recommendBtn">让 AI 打酒师解读我</button>
         <button class="ghost" id="surpriseBtn">我说不上来，你帮我判断</button>
-        <button class="ghost" id="connectModelBtn">连接 DeepSeek</button>
         <button class="secondary" id="resetBtn">重来</button>
       </div>
       <div class="loading" id="loadingText">AI 打酒师正在读你的状态<span class="dots"></span></div>
@@ -442,6 +449,7 @@
   </div>
 
   <script>
+    const EMBEDDED_DEEPSEEK_API_KEY = 'sk-115148e5391649989c063ae148ee1537';
     const hints = [
       '今天刚下班，想放松一下，但也想跟人聊两句。',
       '我今天心情不太好，想喝一杯缓缓。',
@@ -546,7 +554,7 @@
 
     function getDeepSeekConfig() {
       return {
-        apiKey: localStorage.getItem('DEEPSEEK_API_KEY') || '',
+        apiKey: localStorage.getItem('DEEPSEEK_API_KEY') || EMBEDDED_DEEPSEEK_API_KEY,
         baseUrl: localStorage.getItem('DEEPSEEK_BASE_URL') || 'https://api.deepseek.com',
         model: localStorage.getItem('DEEPSEEK_MODEL') || 'deepseek-chat'
       };
@@ -554,11 +562,7 @@
 
     function getOrAskDeepSeekKey() {
       const cfg = getDeepSeekConfig();
-      if (cfg.apiKey) return cfg.apiKey;
-      const key = window.prompt('输入 DeepSeek API Key（仅保存在当前浏览器）:');
-      if (!key) return '';
-      localStorage.setItem('DEEPSEEK_API_KEY', key.trim());
-      return key.trim();
+      return cfg.apiKey || '';
     }
 
     function mulberry32(seed) {
@@ -918,12 +922,6 @@
     document.getElementById('surpriseBtn').addEventListener('click', () => {
       answerVariant = 0;
       recommend({ freeText: '我今天心情一般，想喝一杯缓缓，但不想太烈。' });
-    });
-    document.getElementById('connectModelBtn').addEventListener('click', () => {
-      const key = getOrAskDeepSeekKey();
-      if (key) {
-        alert('DeepSeek 已连接，后续将优先使用大模型生成文案。');
-      }
     });
     document.getElementById('resetBtn').addEventListener('click', () => {
       document.getElementById('freeText').value = '';
