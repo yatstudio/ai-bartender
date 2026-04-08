@@ -290,7 +290,20 @@
     }
     .section { margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--line); }
     .section-title { color: #7dd3fc; font-size: 13px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; margin-bottom: 8px; }
-    .bar-order { font-size: 30px; color: #fef3c7; line-height: 1.55; font-weight: 900; letter-spacing: .01em; }
+    .bar-order {
+      display: inline-block;
+      font-size: 34px;
+      color: #fff7d6;
+      line-height: 1.45;
+      font-weight: 900;
+      letter-spacing: .01em;
+      padding: 8px 12px;
+      border-radius: 12px;
+      background: linear-gradient(90deg, rgba(245, 158, 11, 0.18), rgba(244, 63, 94, 0.16));
+      border: 1px solid rgba(251, 191, 36, 0.38);
+      text-shadow: 0 0 14px rgba(251, 191, 36, 0.45), 0 2px 0 rgba(15, 23, 42, 0.75);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+    }
     .meta { color: var(--muted); display: flex; flex-wrap: wrap; gap: 14px; font-size: 14px; }
     .soft-note { margin-top: 12px; color: #fda4af; font-size: 13px; }
     .loading { display: none; margin-top: 18px; color: #bae6fd; font-size: 14px; letter-spacing: .05em; text-transform: uppercase; }
@@ -309,7 +322,7 @@
       .result-card { padding: 22px 20px; }
       .headline { font-size: 30px; }
       .reading-box, .pitch-box { font-size: 18px; line-height: 1.85; }
-      .bar-order { font-size: 26px; line-height: 1.55; }
+      .bar-order { font-size: 30px; line-height: 1.45; }
     }
 
     @media (max-width: 768px) {
@@ -339,7 +352,7 @@
       .formula { display: block; font-size: 12px; border-radius: 12px; line-height: 1.5; }
       .headline { font-size: 24px; line-height: 1.35; }
       .reading-box, .pitch-box { font-size: 16px; line-height: 1.75; padding: 14px; border-radius: 0 12px 12px 0; }
-      .bar-order { font-size: 23px; line-height: 1.5; }
+      .bar-order { font-size: 25px; line-height: 1.4; padding: 7px 10px; }
       .meta { gap: 8px; font-size: 13px; }
       .soft-note { font-size: 12px; }
     }
@@ -634,7 +647,7 @@
           bridge: narrative.bridge,
           bartenderPitch: narrative.bartenderPitch,
           drink: picked,
-          orderLine: `你今晚适合${picked.name}`,
+          orderLine: `你今晚适合 #${picked.name}`,
           notice: notice(picked, archetype)
         };
       }
