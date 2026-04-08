@@ -860,7 +860,6 @@
       const risk = detectSafetyRisk(text);
       if (risk) return buildSafetyResponse(risk, drinks);
       const scenario = detectSpecialScenario(text);
-      if (scenario) return buildScenarioResponse(scenario, drinks);
 
       // Prefer DeepSeek when key exists; fallback to local engine on any error.
       try {
@@ -887,6 +886,8 @@
       } catch (err) {
         window.__lastModelError = err && err.message ? err.message : String(err || 'unknown');
       }
+
+      if (scenario) return buildScenarioResponse(scenario, drinks);
 
       let attempts = 0;
       while (attempts < 8) {
