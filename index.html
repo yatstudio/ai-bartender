@@ -471,25 +471,59 @@
     }
 
     const narrativeHistory = new Set();
-    const supportOpeners = [
-      '哎，抱抱你，今天确实不容易。',
-      '我懂你这感觉，心里有点乱但又不想扫兴。',
-      '来，我在，先慢慢说，不急。'
-    ];
-    const moodMirrors = [
-      '你现在更适合一点温柔感，不要太冲太硬的那种。',
-      '今天先别给自己压力，选一杯能让你放松下来的就对了。',
-      '你这状态最适合先稳住情绪，再慢慢把气氛打开。'
-    ];
-    const comfortLines = [
-      '你不用逞强，今晚把自己照顾好就已经很棒了。',
-      '先让自己舒服一点，剩下的事都可以慢慢来。',
-      '今天就对自己温柔一点，好吗。'
-    ];
+    const recentLineHistory = [];
+    const RECENT_LIMIT = 30;
+    const emotionProfiles = {
+      anxious: {
+        openers: ['你是不是有点紧张，心一直悬着？', '我听出来了，你现在有点绷着。', '你这会儿像是在硬撑，心里没真的放松。'],
+        mirrors: ['先别逼自己马上好起来，我们先把节奏放慢一点。', '这种时候不用硬扛，先让身体松下来最重要。', '你已经很努力了，先给自己一点喘息空间。'],
+        comfort: ['你不是一个人扛着，我在这儿。', '慢一点没关系，稳住比逞强更重要。', '先照顾好你自己，别急着证明什么。']
+      },
+      sad: {
+        openers: ['你这句有点低落，我听见了。', '今天是不是有点难过，心里沉沉的？', '你现在这个状态，像是被情绪压住了。'],
+        mirrors: ['难过的时候先不用讲大道理，先让自己被好好对待。', '情绪有起伏很正常，你已经很勇敢了。', '我们先选一杯温柔一点的，让心慢慢松开。'],
+        comfort: ['今晚先对自己好一点。', '你值得被温柔接住。', '你现在需要的不是批评，是被安慰。']
+      },
+      happy: {
+        openers: ['哇，听起来你今天状态不错。', '你这句是有开心在发光的。', '这个心情很好，适合把氛围点起来。'],
+        mirrors: ['这种时候就选一杯有记忆点的，开心要被放大。', '你现在很适合轻松又好入口的风味。', '我们把这个好心情再往上推一点。'],
+        comfort: ['把今晚过得漂亮一点。', '开心就该好好庆祝一下。', '这个状态很难得，值得被认真享受。']
+      },
+      angry: {
+        openers: ['你这句有火气，我听到了。', '现在是不是有点上头、想发泄一下？', '这会儿情绪挺冲的，对吧？'],
+        mirrors: ['先别让情绪带着你跑，先稳住。', '我们先把刺放软一点，不用硬顶。', '先选一杯能降速的，再慢慢把气顺下来。'],
+        comfort: ['你有情绪很正常，不用压着。', '先把自己放在第一位。', '今晚先让自己舒服一点。']
+      },
+      excited: {
+        openers: ['你这句有点兴奋感，状态很在线。', '今晚你是想来点新鲜刺激的，对吧？', '这个劲头很适合玩点不一样的。'],
+        mirrors: ['那我们选一杯风味更有记忆点的。', '你现在适合轻松但有亮点的路线。', '今晚可以大胆一点，但别过头。'],
+        comfort: ['保持这个好状态。', '你这股劲很有感染力。', '今晚会很有意思。']
+      },
+      tired: {
+        openers: ['今天是不是有点累了？', '你这句一出来，我就感觉你在透支。', '你现在像是电量见底了。'],
+        mirrors: ['先回血，不要上来就重口。', '这种时候最适合低负担、慢慢放松。', '今晚先把紧绷感放下来。'],
+        comfort: ['你已经够辛苦了。', '先休息一下，别对自己太狠。', '先把自己照顾好，其他都往后排。']
+      },
+      lonely: {
+        openers: ['你这句有点孤单，我听到了。', '是不是有点想被人陪着，但又不想太用力社交？', '这种安静里的失落我懂。'],
+        mirrors: ['那就选一杯温柔、容易开口的。', '先给自己一点被陪伴的感觉。', '今晚我们走“慢慢连接”的节奏。'],
+        comfort: ['你不是没人懂。', '先把心安顿好，关系慢慢来。', '你值得被认真对待。']
+      },
+      confused: {
+        openers: ['你现在像是有点乱，不知道先做什么。', '这句里有犹豫，我听出来了。', '你不是没想法，只是脑子有点打结。'],
+        mirrors: ['没关系，我们先给今晚一个简单、好执行的选择。', '先从不出错的一杯开始。', '先把复杂的事放一放，先稳住感受。'],
+        comfort: ['你不用一次把所有事想明白。', '先过好今晚这一步就够了。', '慢一点也很好。']
+      },
+      neutral: {
+        openers: ['我听到了，我们慢慢来。', '好，先按你现在的状态来。', '收到，那我给你一个舒服的方向。'],
+        mirrors: ['先选一杯顺口的，心情会慢慢打开。', '我们先走轻松路线，不给自己压力。', '先从低负担开始，状态会更稳。'],
+        comfort: ['今晚先让自己舒服一点。', '你可以慢慢进入状态。', '不用急，按自己的节奏来。']
+      }
+    };
     const bridgeTemplates = [
-      '我给你挑了一个更顺口、也更贴你今晚状态的方向。',
-      '我们先走轻松路线，让你慢慢回到自己的节奏。',
-      '先从一杯好入口的开始，情绪会慢慢松开。'
+      '我先给你一个最稳的方向。',
+      '这杯更贴你现在的感觉。',
+      '我们先从这杯开始最合适。'
     ];
 
     function hashText(text) {
@@ -515,6 +549,18 @@
       return arr[Math.floor(rng() * arr.length)];
     }
 
+    function pushRecent(line) {
+      recentLineHistory.push(line);
+      if (recentLineHistory.length > RECENT_LIMIT) recentLineHistory.shift();
+    }
+
+    function pickFresh(arr, rng) {
+      const candidates = arr.filter(x => !recentLineHistory.includes(x));
+      const line = pickOne(candidates.length ? candidates : arr, rng);
+      pushRecent(line);
+      return line;
+    }
+
     function inferIntent(text) {
       const t = (text || '').toLowerCase();
       return {
@@ -534,16 +580,46 @@
       };
     }
 
-    function chooseArchetype(intent, rng) {
+    function detectEmotion(text) {
+      const t = (text || '').toLowerCase();
+      const rules = [
+        { key: 'anxious', re: /紧张|焦虑|慌|害怕|忐忑|压力大|不安|心慌/ },
+        { key: 'sad', re: /难过|伤心|低落|想哭|委屈|失落|沮丧|不开心/ },
+        { key: 'happy', re: /开心|高兴|快乐|愉快|雀跃|美滋滋/ },
+        { key: 'angry', re: /生气|火大|烦死|气死|恼火|愤怒/ },
+        { key: 'excited', re: /兴奋|激动|期待|热血|冲/ },
+        { key: 'tired', re: /累|疲惫|困|没电|透支|下班|疲劳/ },
+        { key: 'lonely', re: /孤独|孤单|一个人|没人懂|寂寞/ },
+        { key: 'confused', re: /迷茫|不知道|纠结|混乱|拿不准|无语/ }
+      ];
+      for (const r of rules) {
+        if (r.re.test(t)) return r.key;
+      }
+      return 'neutral';
+    }
+
+    function chooseArchetype(intent, rng, emotion) {
       const score = (a) => a.triggers.reduce((n, key) => n + ({
         relax: intent.wantsRelax, talk: intent.wantsTalk, light: intent.wantsLight, sweet: intent.wantsSweet,
         fresh: intent.wantsFresh, sour: intent.wantsSour, bitter: intent.wantsBitter, project: intent.wantsProject,
         surprise: intent.wantsSurprise, celebrate: intent.wantsCelebrate, solo: intent.wantsSolo
       }[key] ? 1 : 0), 0);
+      const emotionBias = {
+        anxious: ['moon-drifter', 'soft-healer', 'clean-safe'],
+        sad: ['soft-healer', 'moon-drifter', 'quiet-observer'],
+        happy: ['spark-hunter', 'velvet-celebrant', 'signal-sender'],
+        angry: ['clean-safe', 'moon-drifter', 'quiet-observer'],
+        excited: ['spark-hunter', 'curious-roamer', 'velvet-celebrant'],
+        tired: ['moon-drifter', 'clean-safe', 'soft-healer'],
+        lonely: ['signal-sender', 'soft-healer', 'quiet-observer'],
+        confused: ['clean-safe', 'moon-drifter', 'idea-summoner'],
+        neutral: ['clean-safe', 'signal-sender', 'moon-drifter']
+      };
+      const bias = emotionBias[emotion] || emotionBias.neutral;
       const sorted = [...archetypes]
-        .map(a => ({ a, s: score(a) }))
+        .map(a => ({ a, s: score(a) + (bias.includes(a.key) ? 2 : 0) + Math.floor(rng() * 2) }))
         .sort((x, y) => y.s - x.s);
-      const top = sorted.slice(0, Math.min(3, sorted.length));
+      const top = sorted.slice(0, Math.min(5, sorted.length));
       return pickOne(top, rng).a;
     }
 
@@ -598,10 +674,11 @@
       return pickOne(pool, rng).drink;
     }
 
-    function buildNarrative(text, intent, archetype, drink, rng) {
-      const o1 = pickOne(supportOpeners, rng);
-      const o2 = pickOne(moodMirrors, rng);
-      const o3 = pickOne(comfortLines, rng);
+    function buildNarrative(text, intent, archetype, drink, emotion, rng) {
+      const profile = emotionProfiles[emotion] || emotionProfiles.neutral;
+      const o1 = pickFresh(profile.openers, rng);
+      const o2 = pickFresh(profile.mirrors, rng);
+      const o3 = pickFresh(profile.comfort, rng);
       const opening = `${o1}\n\n${o2}`;
 
       const emotionalFocus = intent.gotScolded
@@ -613,7 +690,7 @@
             : '你要的不是喝醉，而是一个能慢慢回到自己的节奏。';
 
       const breakdown = `${o3}\n\n${emotionalFocus}`;
-      const bridge = pickOne(bridgeTemplates, rng);
+      const bridge = pickFresh(bridgeTemplates, rng);
       const bartenderPitch = `${drink.desc} 这杯比较温和，也容易聊天，不会给你太大负担。`;
       return { opening, breakdown, bridge, bartenderPitch };
     }
@@ -629,13 +706,14 @@
         const seed = (hashText(text || 'default') + variant * 10007 + attempts * 7919 + Math.floor(Math.random() * 1000000)) >>> 0;
         const rng = mulberry32(seed);
         const intent = inferIntent(text);
-        const archetype = chooseArchetype(intent, rng);
+        const emotion = detectEmotion(text);
+        const archetype = chooseArchetype(intent, rng, emotion);
         const ranked = drinks
           .map(drink => ({ drink, score: scoreDrink(drink, text, intent, archetype) + Math.floor(rng() * 3) }))
           .sort((a, b) => b.score - a.score);
         const picked = pickDrink(ranked, rng) || drinks[0];
-        const narrative = buildNarrative(text, intent, archetype, picked, rng);
-        const signature = `${archetype.key}|${picked.name}|${narrative.opening}|${narrative.bridge}`;
+        const narrative = buildNarrative(text, intent, archetype, picked, emotion, rng);
+        const signature = `${emotion}|${archetype.key}|${picked.name}|${narrative.opening}|${narrative.bridge}`;
         if (narrativeHistory.has(signature) && attempts < 8) continue;
         narrativeHistory.add(signature);
 
