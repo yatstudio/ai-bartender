@@ -998,11 +998,7 @@
         data.source === 'safety' ? '安全模式' :
         data.source === 'scenario' ? '场景模式' :
         '本地兜底';
-      const cfg = getDeepSeekConfig();
-      const modelHint = (sourceLabel === '本地兜底' && cfg.apiKey && window.__lastModelError)
-        ? `｜DeepSeek失败：${window.__lastModelError}`
-        : '';
-      document.getElementById('softNote').textContent = `${data.notice}｜生成：${sourceLabel}${modelHint}`;
+      document.getElementById('softNote').textContent = `${data.notice}｜生成：${sourceLabel}`;
 
       loadingText.classList.remove('show');
       stopEtaCountdown();
