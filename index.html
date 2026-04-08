@@ -298,21 +298,50 @@
     .dots::after { content: ''; display: inline-block; width: 1.5em; text-align: left; animation: dots 1.2s steps(4,end) infinite; }
     @keyframes dots { 0% { content: ''; } 25% { content: '.'; } 50% { content: '..'; } 75% { content: '...'; } 100% { content: ''; } }
 
+    @media (max-width: 1024px) {
+      .wrap { max-width: 900px; padding: 18px 16px 44px; }
+      .hero { padding: 30px 26px 26px; }
+      .hero-prompt { font-size: clamp(38px, 6vw, 46px); }
+      .panel { padding: 20px; }
+      textarea { min-height: 170px; }
+      .result-overlay { padding: 28px 18px; }
+      .overlay-close { right: 12px; top: 12px; }
+      .result-card { padding: 22px 20px; }
+      .headline { font-size: 30px; }
+      .reading-box, .pitch-box { font-size: 18px; line-height: 1.85; }
+      .bar-order { font-size: 20px; line-height: 1.7; }
+    }
+
     @media (max-width: 768px) {
-      .wrap { padding: 14px 12px 40px; }
-      .hero { text-align: center; padding: 26px 18px 24px; }
-      .hero-kicker { font-size: 16px; }
-      .hero-prompt { font-size: 34px; }
-      .logo-bar { justify-content: center; }
-      .logo-left { width: 72px; height: 72px; }
-      .logo-pair { gap: 10px; padding: 8px 0; margin-top: 8px; }
-      .brand-x { font-size: 16px; }
-      .brand-8848 .main { font-size: 22px; }
-      .brand-8848 .sub { font-size: 8px; }
-      .brand-tiaohai { font-size: 24px; }
-      textarea { min-height: 180px; }
-      .headline { font-size: 26px; }
-      .reading-box, .pitch-box { font-size: 17px; }
+      .wrap { padding: 12px 10px 34px; }
+      .logo-bar { justify-content: center; margin-bottom: 18px; }
+      .logo-left { width: 72px; height: 72px; border-radius: 16px; }
+      .logo-pair { gap: 8px; padding: 8px 0; margin-top: 8px; }
+      .brand-x { font-size: 14px; }
+      .brand-8848 .main { font-size: 20px; letter-spacing: 0.06em; }
+      .brand-8848 .sub { font-size: 8px; margin-top: 4px; }
+      .brand-tiaohai { font-size: 22px; }
+      .hero { text-align: left; padding: 24px 14px 20px; border-radius: 18px; }
+      .hero-kicker { font-size: 15px; margin-bottom: 10px; }
+      .hero-prompt { font-size: 30px; line-height: 1.25; }
+      .prompt-box { padding: 14px; font-size: 14px; line-height: 1.7; }
+      .panel { padding: 14px; border-radius: 18px; }
+      textarea { min-height: 160px; padding: 14px; font-size: 16px; line-height: 1.6; border-radius: 14px; }
+      .hint-row { gap: 8px; }
+      .hint-chip { font-size: 12px; padding: 7px 10px; }
+      .actions { gap: 10px; }
+      .actions button { width: 100%; }
+      button { min-height: 46px; font-size: 14px; border-radius: 12px; }
+      .result-overlay { padding: 16px 10px 24px; }
+      .overlay-close { right: 10px; top: 10px; padding: 8px 12px; }
+      .result-card { margin-top: 0; padding: 16px 14px; border-radius: 16px; }
+      .archetype { font-size: 12px; }
+      .formula { display: block; font-size: 12px; border-radius: 12px; line-height: 1.5; }
+      .headline { font-size: 24px; line-height: 1.35; }
+      .reading-box, .pitch-box { font-size: 16px; line-height: 1.75; padding: 14px; border-radius: 0 12px 12px 0; }
+      .bar-order { font-size: 18px; line-height: 1.6; }
+      .meta { gap: 8px; font-size: 13px; }
+      .soft-note { font-size: 12px; }
     }
   </style>
 </head>
