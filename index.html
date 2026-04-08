@@ -539,26 +539,6 @@
       return pickOne(top, rng).a;
     }
 
-    function inferMbti(intent, text, rng) {
-      let e = 0; let i = 0; let s = 0; let n = 0; let t = 0; let f = 0; let j = 0; let p = 0;
-      if (intent.wantsTalk) e += 2; if (intent.wantsSolo) i += 3;
-      if (intent.wantsFresh || intent.wantsLight) s += 1; if (intent.wantsSurprise || /灵感|未来|可能性/.test(text)) n += 2;
-      if (intent.wantsProject || intent.wantsBitter) t += 2; if (intent.heartTired || intent.gotScolded || intent.wantsSweet) f += 2;
-      if (intent.wantsLight || intent.wantsFresh) j += 1; if (intent.wantsSurprise || intent.wantsCelebrate) p += 2;
-      e += rng() > 0.5 ? 1 : 0; i += rng() > 0.5 ? 1 : 0;
-      s += rng() > 0.5 ? 1 : 0; n += rng() > 0.5 ? 1 : 0;
-      t += rng() > 0.5 ? 1 : 0; f += rng() > 0.5 ? 1 : 0;
-      j += rng() > 0.5 ? 1 : 0; p += rng() > 0.5 ? 1 : 0;
-      const type = `${e >= i ? 'E' : 'I'}${s >= n ? 'S' : 'N'}${t >= f ? 'T' : 'F'}${j >= p ? 'J' : 'P'}`;
-      const labels = {
-        INFJ: '温柔洞察者', INFP: '情绪诗人', ENFP: '火花点燃者', ENFJ: '共情引导者',
-        INTJ: '冷静策划者', INTP: '逻辑漫游者', ENTJ: '目标推进者', ENTP: '观点实验家',
-        ISFJ: '稳态守护者', ISFP: '感官疗愈者', ESFP: '现场氛围师', ESFJ: '关系照明者',
-        ISTJ: '秩序执行者', ISTP: '问题拆解者', ESTP: '行动破局者', ESTJ: '场面掌控者'
-      };
-      return { type, label: labels[type] || '平衡调和者' };
-    }
-
     function scoreDrink(drink, text, intent, archetype) {
       let score = 0;
       const allText = (text || '').toLowerCase();
@@ -582,9 +562,9 @@
       return score;
     }
 
-    function notice(drink, archetype, mbti) {
+    function notice(drink, archetype) {
       const strength = drink.strength === 'high' ? '这杯酒精度偏高，建议慢一点喝。' : drink.strength === 'none' ? '这杯是无酒精选项，适合想保持清醒但又想参与气氛的时候。' : drink.strength === 'low' ? '这杯低酒精、好入口，比较适合先接住情绪。' : '这杯整体比较稳，适合边喝边聊。';
-      return `${archetype.name}｜${mbti.type} ${mbti.label}。${strength}`;
+      return `${archetype.name}。${strength}`;
     }
 
     function pickDrink(ranked, rng) {
@@ -599,7 +579,7 @@
       return pickOne(pool, rng).drink;
     }
 
-    function buildNarrative(text, intent, archetype, mbti, drink, rng) {
+    function buildNarrative(text, intent, archetype, drink, rng) {
       const o1 = pickOne(supportOpeners, rng);
       const o2 = pickOne(fortuneStyles, rng);
       const o3 = pickOne(therapistMirrors, rng);
@@ -613,7 +593,7 @@
             ? '你其实想被看见，也想保留体面，所以这杯酒要能让你自然开口。'
             : '你要的不是喝醉，而是一个能慢慢回到自己的节奏。';
 
-      const breakdown = `${o3}\n\n${emotionalFocus}\n\n16型人格倾向先给你定在 ${mbti.type}（${mbti.label}）：这类状态通常需要“被理解 + 可控表达”同时在线。`;
+      const breakdown = `${o3}\n\n${emotionalFocus}\n\n你今晚更适合“先被接住，再慢慢展开”的节奏，不用急着证明自己。`;
       const bridge = pickOne(bridgeTemplates, rng).replace('{name}', drink.name);
       const bartenderPitch = `${drink.desc} 这杯和你当前的 ${archetype.name} 比较对齐，既能接住情绪，也留出交流空间。`;
       const orderLine = pickOne(orderTemplates, rng).replace('{name}', drink.name);
@@ -632,26 +612,25 @@
         const rng = mulberry32(seed);
         const intent = inferIntent(text);
         const archetype = chooseArchetype(intent, rng);
-        const mbti = inferMbti(intent, text, rng);
         const ranked = drinks
           .map(drink => ({ drink, score: scoreDrink(drink, text, intent, archetype) + Math.floor(rng() * 3) }))
           .sort((a, b) => b.score - a.score);
         const picked = pickDrink(ranked, rng) || drinks[0];
-        const narrative = buildNarrative(text, intent, archetype, mbti, picked, rng);
-        const signature = `${archetype.key}|${mbti.type}|${picked.name}|${narrative.opening}|${narrative.bridge}`;
+        const narrative = buildNarrative(text, intent, archetype, picked, rng);
+        const signature = `${archetype.key}|${picked.name}|${narrative.opening}|${narrative.bridge}`;
         if (narrativeHistory.has(signature) && attempts < 8) continue;
         narrativeHistory.add(signature);
 
         return {
-          archetype: `${archetype.name} · ${mbti.type}`,
-          formula: `${archetype.formula}｜人格侧写：${mbti.label}`,
+          archetype: `${archetype.name}`,
+          formula: `${archetype.formula}`,
           opening: narrative.opening,
           breakdown: narrative.breakdown,
           bridge: narrative.bridge,
           bartenderPitch: narrative.bartenderPitch,
           drink: picked,
           orderLine: narrative.orderLine,
-          notice: notice(picked, archetype, mbti)
+          notice: notice(picked, archetype)
         };
       }
 
