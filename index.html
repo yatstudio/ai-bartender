@@ -294,8 +294,27 @@
     }
     .meta { color: var(--muted); display: flex; flex-wrap: wrap; gap: 14px; font-size: 14px; }
     .soft-note { margin-top: 12px; color: #fda4af; font-size: 13px; }
-    .loading { display: none; margin-top: 18px; color: #bae6fd; font-size: 14px; letter-spacing: .05em; text-transform: uppercase; }
+    .loading {
+      display: none;
+      margin-top: 16px;
+      color: #fef3c7;
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: .02em;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(251, 191, 36, 0.35);
+      background: linear-gradient(90deg, rgba(251, 191, 36, 0.14), rgba(59, 130, 246, 0.12));
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18), inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+    }
     .loading.show { display: block; }
+    .loading .eta {
+      margin-left: 10px;
+      color: #bae6fd;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
     .dots::after { content: ''; display: inline-block; width: 1.5em; text-align: left; animation: dots 1.2s steps(4,end) infinite; }
     @keyframes dots { 0% { content: ''; } 25% { content: '.'; } 50% { content: '..'; } 75% { content: '...'; } 100% { content: ''; } }
 
@@ -343,6 +362,8 @@
       .bar-order { font-size: 25px; line-height: 1.4; padding: 7px 10px; }
       .meta { gap: 8px; font-size: 13px; }
       .soft-note { font-size: 12px; }
+      .loading { font-size: 15px; padding: 9px 10px; }
+      .loading .eta { font-size: 12px; }
     }
   </style>
 </head>
@@ -387,7 +408,7 @@
         <button class="ghost" id="surpriseBtn">我说不上来，你帮我判断</button>
         <button class="secondary" id="resetBtn">重来</button>
       </div>
-      <div class="loading" id="loadingText">AI 打酒师正在读你的状态<span class="dots"></span></div>
+      <div class="loading" id="loadingText">AI 打酒师正在读你的状态<span class="dots"></span><span class="eta" id="etaText">预计 12s</span></div>
       <div class="loading" id="errorText" style="display:none;color:#fca5a5;">推荐暂时不可用，请检查页面资源是否完整加载。</div>
     </div>
 
@@ -838,10 +859,35 @@
     }
 
     const loadingText = document.getElementById('loadingText');
+    const etaText = document.getElementById('etaText');
     const resultOverlay = document.getElementById('resultOverlay');
     let answerVariant = 0;
+    let loadingTimer = null;
+    let etaLeft = 0;
     const strengthText = (level) => ({ none: '无酒精', low: '低酒精', mid: '中等酒精', high: '偏高酒精' }[level] || '未知强度');
     const priceText = (drink) => drink.priceLarge ? `¥${drink.priceSmall}/${drink.priceLarge}` : `¥${drink.priceSmall}`;
+
+    function stopEtaCountdown() {
+      if (loadingTimer) {
+        clearInterval(loadingTimer);
+        loadingTimer = null;
+      }
+    }
+
+    function startEtaCountdown(seconds = 12) {
+      stopEtaCountdown();
+      etaLeft = seconds;
+      etaText.textContent = `预计 ${etaLeft}s`;
+      loadingTimer = setInterval(() => {
+        etaLeft -= 1;
+        if (etaLeft > 0) {
+          etaText.textContent = `预计 ${etaLeft}s`;
+        } else {
+          etaText.textContent = '即将完成';
+          stopEtaCountdown();
+        }
+      }, 1000);
+    }
 
     function clearShow() {
       document.querySelectorAll('.typing-line').forEach(el => el.classList.remove('show'));
@@ -854,6 +900,7 @@
     async function recommend(payload) {
       const errorText = document.getElementById('errorText');
       loadingText.classList.add('show');
+      startEtaCountdown(12);
       errorText.style.display = 'none';
       resultOverlay.classList.remove('show');
       clearShow();
@@ -863,6 +910,7 @@
         data = await generateRecommendation({ ...payload, variant: answerVariant });
       } catch (err) {
         loadingText.classList.remove('show');
+        stopEtaCountdown();
         errorText.textContent = `推荐生成失败：${err.message}`;
         errorText.style.display = 'block';
         return;
@@ -884,6 +932,7 @@
       document.getElementById('softNote').textContent = data.notice;
 
       loadingText.classList.remove('show');
+      stopEtaCountdown();
       resultOverlay.classList.add('show');
       window.scrollTo({ top: 0, behavior: 'smooth' });
       stagedReveal();
@@ -902,12 +951,14 @@
       resultOverlay.classList.remove('show');
       clearShow();
       loadingText.classList.remove('show');
+      stopEtaCountdown();
       const errorText = document.getElementById('errorText');
       errorText.style.display = 'none';
     });
     function backHome() {
       resultOverlay.classList.remove('show');
       clearShow();
+      stopEtaCountdown();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
     document.getElementById('closeOverlay').addEventListener('click', backHome);
