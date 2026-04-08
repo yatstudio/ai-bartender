@@ -290,7 +290,7 @@
     }
     .section { margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--line); }
     .section-title { color: #7dd3fc; font-size: 13px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; margin-bottom: 8px; }
-    .bar-order { font-size: 22px; color: #fef3c7; line-height: 1.8; }
+    .bar-order { font-size: 30px; color: #fef3c7; line-height: 1.55; font-weight: 900; letter-spacing: .01em; }
     .meta { color: var(--muted); display: flex; flex-wrap: wrap; gap: 14px; font-size: 14px; }
     .soft-note { margin-top: 12px; color: #fda4af; font-size: 13px; }
     .loading { display: none; margin-top: 18px; color: #bae6fd; font-size: 14px; letter-spacing: .05em; text-transform: uppercase; }
@@ -309,7 +309,7 @@
       .result-card { padding: 22px 20px; }
       .headline { font-size: 30px; }
       .reading-box, .pitch-box { font-size: 18px; line-height: 1.85; }
-      .bar-order { font-size: 20px; line-height: 1.7; }
+      .bar-order { font-size: 26px; line-height: 1.55; }
     }
 
     @media (max-width: 768px) {
@@ -339,7 +339,7 @@
       .formula { display: block; font-size: 12px; border-radius: 12px; line-height: 1.5; }
       .headline { font-size: 24px; line-height: 1.35; }
       .reading-box, .pitch-box { font-size: 16px; line-height: 1.75; padding: 14px; border-radius: 0 12px 12px 0; }
-      .bar-order { font-size: 18px; line-height: 1.6; }
+      .bar-order { font-size: 23px; line-height: 1.5; }
       .meta { gap: 8px; font-size: 13px; }
       .soft-note { font-size: 12px; }
     }
@@ -459,29 +459,24 @@
 
     const narrativeHistory = new Set();
     const supportOpeners = [
-      '我先接住你这句话，不着急下结论。你现在的状态值得被认真听见。',
-      '你这句看起来轻描淡写，但情绪分量不轻，我听到了。',
-      '先不用证明自己“没事”，你这句话已经把今晚的心情交代得很真实。'
+      '哎，抱抱你，今天确实不容易。',
+      '我懂你这感觉，心里有点乱但又不想扫兴。',
+      '来，我在，先慢慢说，不急。'
     ];
-    const fortuneStyles = [
-      '牌面像月亮逆位：情绪在表层打转，真正需要的是被安放而不是被教育。',
-      '今晚星盘更像风元素偏强：脑子很清醒，心却还在找落点。',
-      '你这段话的运势信号是“先稳后亮”：先让自己落地，再去点燃场子。'
+    const moodMirrors = [
+      '你现在更适合一点温柔感，不要太冲太硬的那种。',
+      '今天先别给自己压力，选一杯能让你放松下来的就对了。',
+      '你这状态最适合先稳住情绪，再慢慢把气氛打开。'
     ];
-    const therapistMirrors = [
-      '如果把你这句话拆开看，核心不是“喝什么”，而是“我今晚想怎么被对待”。',
-      '你不是要一个标准答案，你是在找一个既不压抑自己、也不失控的出口。',
-      '你现在更像在寻求“可控的温柔刺激”，既想活过来，又不想被推过头。'
+    const comfortLines = [
+      '你不用逞强，今晚把自己照顾好就已经很棒了。',
+      '先让自己舒服一点，剩下的事都可以慢慢来。',
+      '今天就对自己温柔一点，好吗。'
     ];
     const bridgeTemplates = [
-      '综合你这句的情绪纹理，我会把今晚主推荐落在「{name}」。',
-      '如果由我来替你递第一杯，我会先给你「{name}」，它更贴你当下的频率。',
-      '今晚这局，最像你的开场键是「{name}」。'
-    ];
-    const orderTemplates = [
-      '去吧台直接说：我今晚状态有点复杂，先给我一杯「{name}」。',
-      '你可以这样点：先来「{name}」，我想慢慢进入状态。',
-      '开口就这一句：麻烦给我一杯「{name}」，我想先把情绪放下来。'
+      '我给你挑了一个更顺口、也更贴你今晚状态的方向。',
+      '我们先走轻松路线，让你慢慢回到自己的节奏。',
+      '先从一杯好入口的开始，情绪会慢慢松开。'
     ];
 
     function hashText(text) {
@@ -567,6 +562,17 @@
       return `${archetype.name}。${strength}`;
     }
 
+    function friendlyFormula(intent, drink) {
+      const tags = [];
+      if (intent.wantsLight || ['none', 'low'].includes(drink.strength)) tags.push('好入口');
+      if (intent.wantsFresh) tags.push('清爽');
+      if (intent.wantsSweet) tags.push('微甜');
+      if (intent.wantsTalk) tags.push('适合聊天');
+      if (intent.wantsRelax || intent.heartTired) tags.push('先放松');
+      if (!tags.length) tags.push('顺口', '轻松');
+      return `今晚感觉：${tags.slice(0, 3).join(' · ')}`;
+    }
+
     function pickDrink(ranked, rng) {
       if (!ranked.length) return null;
       const seen = new Set();
@@ -581,8 +587,8 @@
 
     function buildNarrative(text, intent, archetype, drink, rng) {
       const o1 = pickOne(supportOpeners, rng);
-      const o2 = pickOne(fortuneStyles, rng);
-      const o3 = pickOne(therapistMirrors, rng);
+      const o2 = pickOne(moodMirrors, rng);
+      const o3 = pickOne(comfortLines, rng);
       const opening = `${o1}\n\n${o2}`;
 
       const emotionalFocus = intent.gotScolded
@@ -593,11 +599,10 @@
             ? '你其实想被看见，也想保留体面，所以这杯酒要能让你自然开口。'
             : '你要的不是喝醉，而是一个能慢慢回到自己的节奏。';
 
-      const breakdown = `${o3}\n\n${emotionalFocus}\n\n你今晚更适合“先被接住，再慢慢展开”的节奏，不用急着证明自己。`;
-      const bridge = pickOne(bridgeTemplates, rng).replace('{name}', drink.name);
-      const bartenderPitch = `${drink.desc} 这杯和你当前的 ${archetype.name} 比较对齐，既能接住情绪，也留出交流空间。`;
-      const orderLine = pickOne(orderTemplates, rng).replace('{name}', drink.name);
-      return { opening, breakdown, bridge, bartenderPitch, orderLine };
+      const breakdown = `${o3}\n\n${emotionalFocus}`;
+      const bridge = pickOne(bridgeTemplates, rng);
+      const bartenderPitch = `${drink.desc} 这杯比较温和，也容易聊天，不会给你太大负担。`;
+      return { opening, breakdown, bridge, bartenderPitch };
     }
 
     async function generateRecommendation(input) {
@@ -623,13 +628,13 @@
 
         return {
           archetype: `${archetype.name}`,
-          formula: `${archetype.formula}`,
+          formula: friendlyFormula(intent, picked),
           opening: narrative.opening,
           breakdown: narrative.breakdown,
           bridge: narrative.bridge,
           bartenderPitch: narrative.bartenderPitch,
           drink: picked,
-          orderLine: narrative.orderLine,
+          orderLine: `你今晚适合${picked.name}`,
           notice: notice(picked, archetype)
         };
       }
@@ -668,8 +673,8 @@
         return;
       }
 
-      document.getElementById('archetype').textContent = `今晚你的解读原型：${data.archetype}`;
-      document.getElementById('formula').textContent = `推荐公式：${data.formula}`;
+      document.getElementById('archetype').textContent = `${data.archetype}`;
+      document.getElementById('formula').textContent = `${data.formula}`;
       document.getElementById('opening').textContent = data.opening;
       document.getElementById('breakdown').textContent = data.breakdown;
       document.getElementById('bridge').textContent = data.bridge;
