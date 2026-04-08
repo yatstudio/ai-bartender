@@ -428,6 +428,56 @@
       return drinksCache;
     }
 
+    const narrativeHistory = new Set();
+    const supportOpeners = [
+      '我先接住你这句话，不着急下结论。你现在的状态值得被认真听见。',
+      '你这句看起来轻描淡写，但情绪分量不轻，我听到了。',
+      '先不用证明自己“没事”，你这句话已经把今晚的心情交代得很真实。'
+    ];
+    const fortuneStyles = [
+      '牌面像月亮逆位：情绪在表层打转，真正需要的是被安放而不是被教育。',
+      '今晚星盘更像风元素偏强：脑子很清醒，心却还在找落点。',
+      '你这段话的运势信号是“先稳后亮”：先让自己落地，再去点燃场子。'
+    ];
+    const therapistMirrors = [
+      '如果把你这句话拆开看，核心不是“喝什么”，而是“我今晚想怎么被对待”。',
+      '你不是要一个标准答案，你是在找一个既不压抑自己、也不失控的出口。',
+      '你现在更像在寻求“可控的温柔刺激”，既想活过来，又不想被推过头。'
+    ];
+    const bridgeTemplates = [
+      '综合你这句的情绪纹理，我会把今晚主推荐落在「{name}」。',
+      '如果由我来替你递第一杯，我会先给你「{name}」，它更贴你当下的频率。',
+      '今晚这局，最像你的开场键是「{name}」。'
+    ];
+    const orderTemplates = [
+      '去吧台直接说：我今晚状态有点复杂，先给我一杯「{name}」。',
+      '你可以这样点：先来「{name}」，我想慢慢进入状态。',
+      '开口就这一句：麻烦给我一杯「{name}」，我想先把情绪放下来。'
+    ];
+
+    function hashText(text) {
+      let h = 2166136261;
+      for (let i = 0; i < text.length; i += 1) {
+        h ^= text.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+      }
+      return h >>> 0;
+    }
+
+    function mulberry32(seed) {
+      let t = seed >>> 0;
+      return () => {
+        t += 0x6D2B79F5;
+        let v = Math.imul(t ^ (t >>> 15), 1 | t);
+        v ^= v + Math.imul(v ^ (v >>> 7), 61 | v);
+        return ((v ^ (v >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+
+    function pickOne(arr, rng) {
+      return arr[Math.floor(rng() * arr.length)];
+    }
+
     function inferIntent(text) {
       const t = (text || '').toLowerCase();
       return {
@@ -447,32 +497,44 @@
       };
     }
 
-    function chooseArchetype(intent) {
+    function chooseArchetype(intent, rng) {
       const score = (a) => a.triggers.reduce((n, key) => n + ({
         relax: intent.wantsRelax, talk: intent.wantsTalk, light: intent.wantsLight, sweet: intent.wantsSweet,
         fresh: intent.wantsFresh, sour: intent.wantsSour, bitter: intent.wantsBitter, project: intent.wantsProject,
         surprise: intent.wantsSurprise, celebrate: intent.wantsCelebrate, solo: intent.wantsSolo
       }[key] ? 1 : 0), 0);
-      return [...archetypes].sort((a, b) => score(b) - score(a))[0] || archetypes[0];
+      const sorted = [...archetypes]
+        .map(a => ({ a, s: score(a) }))
+        .sort((x, y) => y.s - x.s);
+      const top = sorted.slice(0, Math.min(3, sorted.length));
+      return pickOne(top, rng).a;
     }
 
-    function isLowConfidence(intent, text) {
-      const hits = [
-        intent.wantsLight, intent.wantsSweet, intent.wantsFresh, intent.wantsSour,
-        intent.wantsBitter, intent.wantsTalk, intent.wantsProject, intent.wantsRelax,
-        intent.wantsSurprise, intent.wantsCelebrate, intent.wantsSolo,
-        intent.gotScolded, intent.heartTired
-      ].filter(Boolean).length;
-      return hits === 0 && (text || '').trim().length > 0;
+    function inferMbti(intent, text, rng) {
+      let e = 0; let i = 0; let s = 0; let n = 0; let t = 0; let f = 0; let j = 0; let p = 0;
+      if (intent.wantsTalk) e += 2; if (intent.wantsSolo) i += 3;
+      if (intent.wantsFresh || intent.wantsLight) s += 1; if (intent.wantsSurprise || /灵感|未来|可能性/.test(text)) n += 2;
+      if (intent.wantsProject || intent.wantsBitter) t += 2; if (intent.heartTired || intent.gotScolded || intent.wantsSweet) f += 2;
+      if (intent.wantsLight || intent.wantsFresh) j += 1; if (intent.wantsSurprise || intent.wantsCelebrate) p += 2;
+      e += rng() > 0.5 ? 1 : 0; i += rng() > 0.5 ? 1 : 0;
+      s += rng() > 0.5 ? 1 : 0; n += rng() > 0.5 ? 1 : 0;
+      t += rng() > 0.5 ? 1 : 0; f += rng() > 0.5 ? 1 : 0;
+      j += rng() > 0.5 ? 1 : 0; p += rng() > 0.5 ? 1 : 0;
+      const type = `${e >= i ? 'E' : 'I'}${s >= n ? 'S' : 'N'}${t >= f ? 'T' : 'F'}${j >= p ? 'J' : 'P'}`;
+      const labels = {
+        INFJ: '温柔洞察者', INFP: '情绪诗人', ENFP: '火花点燃者', ENFJ: '共情引导者',
+        INTJ: '冷静策划者', INTP: '逻辑漫游者', ENTJ: '目标推进者', ENTP: '观点实验家',
+        ISFJ: '稳态守护者', ISFP: '感官疗愈者', ESFP: '现场氛围师', ESFJ: '关系照明者',
+        ISTJ: '秩序执行者', ISTP: '问题拆解者', ESTP: '行动破局者', ESTJ: '场面掌控者'
+      };
+      return { type, label: labels[type] || '平衡调和者' };
     }
 
     function scoreDrink(drink, text, intent, archetype) {
       let score = 0;
       const allText = (text || '').toLowerCase();
       const hit = (arr, weight = 2) => arr.forEach(tag => { if (allText.includes(String(tag).toLowerCase())) score += weight; });
-      hit(drink.taste, 3);
-      hit(drink.mood, 3);
-      hit(drink.social, 2);
+      hit(drink.taste, 3); hit(drink.mood, 3); hit(drink.social, 2);
       if (archetype.drinks.includes(drink.name)) score += 6;
       if (intent.wantsLight && ['none', 'low'].includes(drink.strength)) score += 6;
       if (intent.wantsLight && drink.strength === 'high') score -= 4;
@@ -491,52 +553,12 @@
       return score;
     }
 
-    function buildWarmOpening(text, intent, lowConfidence) {
-      if (lowConfidence) return '你这句话我听见了，但你现在还没有把“想喝什么感觉”说得很明显。更像是在丢一个状态给我，让我先摸一下你的边。';
-      if (intent.gotScolded) return '哎，那你今天确实有点委屈了。被自己在意的人说两句，表面上像小事，心里其实会一直挂着。';
-      if (intent.heartTired) return '听起来你今天真的有点撑着了。人一累的时候，想喝的往往也不是酒本身，而是那种终于能松一口气的感觉。';
-      if (intent.wantsRelax && intent.wantsTalk) return '你今天这个状态我能理解：已经有点累了，但又不甘心就这么把今晚草草过掉。';
-      if (intent.wantsProject) return '你这个状态挺明显的，你不是来随便热闹一下的，你还是想遇到能聊得动的人。';
-      if (intent.wantsSolo) return '你现在更像是想先把自己安顿好，再决定要不要和这个世界继续打招呼。';
-      if (intent.wantsSweet) return '你现在其实挺需要一点柔软的东西，不是那种上来就给你压力的味道。';
-      if (intent.wantsSurprise) return '你今天不想喝得太普通，这个我懂。有时候人不是馋酒，是想给今晚找一个像样的开头。';
-      return '你这个状态我大概懂，不是单纯想点一杯喝的，而是想找一个更适合今晚自己的感觉。';
+    function notice(drink, archetype, mbti) {
+      const strength = drink.strength === 'high' ? '这杯酒精度偏高，建议慢一点喝。' : drink.strength === 'none' ? '这杯是无酒精选项，适合想保持清醒但又想参与气氛的时候。' : drink.strength === 'low' ? '这杯低酒精、好入口，比较适合先接住情绪。' : '这杯整体比较稳，适合边喝边聊。';
+      return `${archetype.name}｜${mbti.type} ${mbti.label}。${strength}`;
     }
 
-    function buildWarmBreakdown(intent, lowConfidence) {
-      if (lowConfidence) {
-        return '所以我先不急着给你特别死的结论。\n\n如果你只是想随便喝一杯，那我会给你一杯安全、轻松、不会出错的；\n如果你其实是心里有点东西没说完，那我会更偏向一杯能让人慢慢松下来的。';
-      }
-      const parts = [];
-      if (intent.gotScolded) parts.push('像这种时候，其实人会有两股劲拧在一起：一边是委屈，一边又不想把自己弄得更狼狈。');
-      if (intent.wantsRelax) parts.push('所以你现在第一需要的，不是刺激，而是先把人从绷着的状态里放下来。');
-      if (intent.wantsTalk) parts.push('但你也没有真的想把自己封起来，你还是希望今晚有一点连接感，只是别太费劲。');
-      if (intent.wantsProject) parts.push('如果你还想跟人聊点有内容的，那这杯酒就不能太抢戏，要给你留清醒度。');
-      if (intent.wantsLight) parts.push('你自己也说了别太烈，这说明你很清楚自己现在更需要的是被扶一下，不是被推一把。');
-      if (intent.wantsSweet) parts.push('你想要的那种甜，不是幼稚的甜，是一种让人愿意放下防备的甜。');
-      if (intent.wantsSolo) parts.push('你现在适合的节奏，应该是慢慢进入，不是被现场一下卷进去。');
-      if (intent.wantsSurprise) parts.push('而且你也不想今晚太平，所以这杯酒还得带一点小小的记忆点。');
-      if (!parts.length) parts.push('你现在最需要的，不是标准答案，而是一杯能顺着你当下情绪往下走的酒。');
-      return parts.join('\n\n');
-    }
-
-    function bartenderPitch(drink, intent) {
-      let line = `${drink.desc}`;
-      if (intent.gotScolded) line += ' 这种时候就别硬上太冲的，让自己先缓一缓，比什么都重要。';
-      if (intent.wantsRelax) line += ' 它会先把你松下来，不会一口下去整个人更绷。';
-      if (intent.wantsTalk) line += ' 如果待会儿你想和谁聊两句，它也属于那种比较容易把气氛打开的类型。';
-      if (intent.wantsProject) line += ' 而且它不会把你的判断力盖掉，聊正经事也不会乱。';
-      if (intent.wantsSweet) line += ' 入口会更友好一点，人也容易跟着软下来。';
-      if (intent.wantsSurprise) line += ' 同时它又不是完全没脾气的那种，还是有点记忆点。';
-      return line;
-    }
-
-    function notice(drink, archetype) {
-      const strength = drink.strength === 'high' ? '这杯酒精度偏高，建议慢一点喝。' : drink.strength === 'none' ? '这杯是无酒精选项，适合想保持清醒但又想参与气氛的时候。' : drink.strength === 'low' ? '这杯低酒精、好入口，比较适合现在这种需要慢慢缓的状态。' : '这杯整体比较稳，适合边喝边聊。';
-      return `${archetype.name}｜${archetype.formula}。${strength}`;
-    }
-
-    function pickByVariant(ranked, variant = 0) {
+    function pickDrink(ranked, rng) {
       if (!ranked.length) return null;
       const seen = new Set();
       const unique = ranked.filter(x => {
@@ -544,63 +566,67 @@
         seen.add(x.drink.name);
         return true;
       });
-      const pool = unique.slice(0, Math.min(5, unique.length));
-      return (pool[variant % pool.length] || unique[0]).drink;
+      const pool = unique.slice(0, Math.min(6, unique.length));
+      return pickOne(pool, rng).drink;
     }
 
-    function variantOpening(text, intent, lowConfidence, variant) {
-      const base = buildWarmOpening(text, intent, lowConfidence);
-      const alt1 = lowConfidence ? '你这句话里留白还挺多，我先不急着替你下定义。先按你现在的氛围来陪你选一杯。' : (intent.wantsRelax ? '你现在这个状态，不太适合被推着走，反而适合先让自己慢一点。' : '你这句里其实已经把情绪交代出来了，只是你没完全说破。');
-      const alt2 = intent.gotScolded ? '今天这口气我能听出来，先别急着硬撑，先让情绪落下来一点。' : (intent.wantsTalk ? '你其实不是单纯来喝酒的，你是想找一个比较自然的切入口。' : base);
-      return [base, alt1, alt2][variant % 3] || base;
-    }
+    function buildNarrative(text, intent, archetype, mbti, drink, rng) {
+      const o1 = pickOne(supportOpeners, rng);
+      const o2 = pickOne(fortuneStyles, rng);
+      const o3 = pickOne(therapistMirrors, rng);
+      const opening = `${o1}\n\n${o2}`;
 
-    function variantBreakdown(intent, lowConfidence, variant) {
-      const base = buildWarmBreakdown(intent, lowConfidence);
-      const alt1 = lowConfidence ? '如果现在还说不太清，那就先别逼自己讲完整。先从一杯不会出错、又能慢慢打开状态的开始。' : '我会先看你现在是更需要被安抚、被放松，还是更需要一个能把话接出去的状态。';
-      const alt2 = intent.wantsLight ? '你已经说了别太烈，这个边界其实很重要。说明你要的是陪伴型的酒，不是压过你情绪的酒。' : base;
-      return [base, alt1, alt2][variant % 3] || base;
-    }
+      const emotionalFocus = intent.gotScolded
+        ? '你现在最需要的不是“讲道理”，而是先把委屈放下。'
+        : intent.heartTired
+          ? '你在用理性撑住疲惫，所以今晚更需要一杯能让身心同步降速的入口。'
+          : intent.wantsTalk
+            ? '你其实想被看见，也想保留体面，所以这杯酒要能让你自然开口。'
+            : '你要的不是喝醉，而是一个能慢慢回到自己的节奏。';
 
-    function variantBridge(drink, variant) {
-      const arr = [
-        `所以顺着你现在这个状态，我会更想把「${drink.name}」推给你。`,
-        `如果让我现在就替你递一杯，我会先把「${drink.name}」放到你手边。`,
-        `照你刚刚那段话，我最后会把选择落在「${drink.name}」上。`
-      ];
-      return arr[variant % arr.length];
-    }
-
-    function variantPitch(drink, intent, variant) {
-      const base = bartenderPitch(drink, intent);
-      const alt1 = `${drink.desc} 它不是那种很用力的酒，反而更适合让人慢慢进状态。`;
-      const alt2 = `${drink.desc} 如果今晚你不想太硬、又不想太无聊，这杯会比安全牌多一点意思。`;
-      return [base, alt1, alt2][variant % 3] || base;
+      const breakdown = `${o3}\n\n${emotionalFocus}\n\n16型人格倾向先给你定在 ${mbti.type}（${mbti.label}）：这类状态通常需要“被理解 + 可控表达”同时在线。`;
+      const bridge = pickOne(bridgeTemplates, rng).replace('{name}', drink.name);
+      const bartenderPitch = `${drink.desc} 这杯和你当前的 ${archetype.name} 比较对齐，既能接住情绪，也留出交流空间。`;
+      const orderLine = pickOne(orderTemplates, rng).replace('{name}', drink.name);
+      return { opening, breakdown, bridge, bartenderPitch, orderLine };
     }
 
     async function generateRecommendation(input) {
       const drinks = await getDrinks();
-      const text = input.freeText || '';
+      const text = (input.freeText || '').trim();
       const variant = Number(input.variant || 0);
-      const intent = inferIntent(text);
-      const lowConfidence = isLowConfidence(intent, text);
-      const archetype = chooseArchetype(intent);
-      const ranked = drinks
-        .map(drink => ({ drink, score: scoreDrink(drink, text, intent, archetype) }))
-        .sort((a, b) => b.score - a.score);
-      const picked = pickByVariant(ranked, variant) || drinks[0];
 
-      return {
-        archetype: archetype.name,
-        formula: archetype.formula,
-        opening: variantOpening(text, intent, lowConfidence, variant),
-        breakdown: variantBreakdown(intent, lowConfidence, variant),
-        bridge: variantBridge(picked, variant),
-        bartenderPitch: variantPitch(picked, intent, variant),
-        drink: picked,
-        orderLine: `如果你愿意，就去吧台说一句：我今天想喝「${picked.name}」。`,
-        notice: notice(picked, archetype)
-      };
+      let attempts = 0;
+      while (attempts < 8) {
+        attempts += 1;
+        const seed = (hashText(text || 'default') + variant * 10007 + attempts * 7919 + Math.floor(Math.random() * 1000000)) >>> 0;
+        const rng = mulberry32(seed);
+        const intent = inferIntent(text);
+        const archetype = chooseArchetype(intent, rng);
+        const mbti = inferMbti(intent, text, rng);
+        const ranked = drinks
+          .map(drink => ({ drink, score: scoreDrink(drink, text, intent, archetype) + Math.floor(rng() * 3) }))
+          .sort((a, b) => b.score - a.score);
+        const picked = pickDrink(ranked, rng) || drinks[0];
+        const narrative = buildNarrative(text, intent, archetype, mbti, picked, rng);
+        const signature = `${archetype.key}|${mbti.type}|${picked.name}|${narrative.opening}|${narrative.bridge}`;
+        if (narrativeHistory.has(signature) && attempts < 8) continue;
+        narrativeHistory.add(signature);
+
+        return {
+          archetype: `${archetype.name} · ${mbti.type}`,
+          formula: `${archetype.formula}｜人格侧写：${mbti.label}`,
+          opening: narrative.opening,
+          breakdown: narrative.breakdown,
+          bridge: narrative.bridge,
+          bartenderPitch: narrative.bartenderPitch,
+          drink: picked,
+          orderLine: narrative.orderLine,
+          notice: notice(picked, archetype, mbti)
+        };
+      }
+
+      throw new Error('语料生成次数达到上限，请再点一次重来。');
     }
 
     const loadingText = document.getElementById('loadingText');
@@ -634,7 +660,7 @@
         return;
       }
 
-      document.getElementById('archetype').textContent = `今晚你的微醺原型：${data.archetype}`;
+      document.getElementById('archetype').textContent = `今晚你的解读原型：${data.archetype}`;
       document.getElementById('formula').textContent = `推荐公式：${data.formula}`;
       document.getElementById('opening').textContent = data.opening;
       document.getElementById('breakdown').textContent = data.breakdown;
