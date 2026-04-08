@@ -77,6 +77,12 @@
       line-height: 1;
       text-shadow: 0 0 12px rgba(34,197,94,0.16);
     }
+    .brand-8848-link {
+      color: inherit;
+      text-decoration: none;
+      display: inline-block;
+    }
+    .brand-8848-link:hover { opacity: 0.9; }
     .brand-8848 .main {
       font-size: 34px;
       font-weight: 700;
@@ -362,14 +368,16 @@
   <div class="wrap" id="mainWrap">
     <div class="logo-bar">
       <div class="logo-left">
-        <img src="/assets/openclaw-red.png" alt="OpenClaw">
+        <img src="/assets/tiaohai-logo-page.png" alt="跳海logo">
       </div>
       <div class="logo-pair">
         <div class="logo-right brand-8848">
-          <div>
-            <div class="main">8848.studio_</div>
-            <div class="sub">loading studio_modules... 90%</div>
-          </div>
+          <a class="brand-8848-link" href="https://8848.studio" target="_blank" rel="noopener noreferrer">
+            <div>
+              <div class="main">8848.studio_</div>
+              <div class="sub">loading studio_modules... 90%</div>
+            </div>
+          </a>
         </div>
         <div class="brand-x">×</div>
         <div class="logo-right brand-tiaohai" aria-label="跳海酒馆">
@@ -395,6 +403,7 @@
       <div class="actions">
         <button class="primary" id="recommendBtn">让 AI 打酒师解读我</button>
         <button class="ghost" id="surpriseBtn">我说不上来，你帮我判断</button>
+        <button class="ghost" id="connectModelBtn">连接 DeepSeek</button>
         <button class="secondary" id="resetBtn">重来</button>
       </div>
       <div class="loading" id="loadingText">AI 打酒师正在读你的状态<span class="dots"></span></div>
@@ -533,6 +542,23 @@
         h = Math.imul(h, 16777619);
       }
       return h >>> 0;
+    }
+
+    function getDeepSeekConfig() {
+      return {
+        apiKey: localStorage.getItem('DEEPSEEK_API_KEY') || '',
+        baseUrl: localStorage.getItem('DEEPSEEK_BASE_URL') || 'https://api.deepseek.com',
+        model: localStorage.getItem('DEEPSEEK_MODEL') || 'deepseek-chat'
+      };
+    }
+
+    function getOrAskDeepSeekKey() {
+      const cfg = getDeepSeekConfig();
+      if (cfg.apiKey) return cfg.apiKey;
+      const key = window.prompt('输入 DeepSeek API Key（仅保存在当前浏览器）:');
+      if (!key) return '';
+      localStorage.setItem('DEEPSEEK_API_KEY', key.trim());
+      return key.trim();
     }
 
     function mulberry32(seed) {
@@ -680,6 +706,63 @@
       return `今晚感觉：${tags.slice(0, 3).join(' · ')}`;
     }
 
+    function safeJsonParse(text) {
+      try { return JSON.parse(text); } catch (_) {}
+      const m = text.match(/\{[\s\S]*\}/);
+      if (!m) return null;
+      try { return JSON.parse(m[0]); } catch (_) { return null; }
+    }
+
+    async function generateByDeepSeek(input, drinks) {
+      const apiKey = getOrAskDeepSeekKey();
+      if (!apiKey) throw new Error('未提供 DeepSeek API Key');
+      const cfg = getDeepSeekConfig();
+      const drinkNames = drinks.map(d => d.name).join('、');
+      const prompt = `你是“跳海打酒师”的温暖朋友式回复助手。用户输入：${input.freeText || ''}\n` +
+        `可选酒名：${drinkNames}\n` +
+        `请仅输出 JSON，不要 markdown，不要解释。JSON 字段：` +
+        `opening(朋友口吻开场), breakdown(安慰+回应), bridge(一句轻口语), bartenderPitch(口味描述), recommendedDrinkName(必须从可选酒名中选一个)。` +
+        `要求：自然、有温度、不要教科书语气。`;
+
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 15000);
+      try {
+        const res = await fetch(`${cfg.baseUrl.replace(/\/$/, '')}/chat/completions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${apiKey}`
+          },
+          body: JSON.stringify({
+            model: cfg.model,
+            temperature: 1.05,
+            messages: [
+              { role: 'system', content: '你是温柔、口语化、像好朋友的调酒推荐助手。' },
+              { role: 'user', content: prompt }
+            ]
+          }),
+          signal: controller.signal
+        });
+        if (!res.ok) throw new Error(`DeepSeek HTTP ${res.status}`);
+        const data = await res.json();
+        const content = data?.choices?.[0]?.message?.content || '';
+        const parsed = safeJsonParse(content);
+        if (!parsed) throw new Error('DeepSeek 返回解析失败');
+
+        const name = String(parsed.recommendedDrinkName || '').trim();
+        const picked = drinks.find(d => d.name === name) || drinks[Math.floor(Math.random() * drinks.length)];
+        return {
+          opening: String(parsed.opening || ''),
+          breakdown: String(parsed.breakdown || ''),
+          bridge: String(parsed.bridge || ''),
+          bartenderPitch: String(parsed.bartenderPitch || ''),
+          picked
+        };
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
     function pickDrink(ranked, rng) {
       if (!ranked.length) return null;
       const seen = new Set();
@@ -718,13 +801,36 @@
       const drinks = await getDrinks();
       const text = (input.freeText || '').trim();
       const variant = Number(input.variant || 0);
+      const intent = inferIntent(text);
+
+      // Prefer DeepSeek when key exists; fallback to local engine on any error.
+      try {
+        const cfg = getDeepSeekConfig();
+        if (cfg.apiKey) {
+          const llm = await generateByDeepSeek(input, drinks);
+          const picked = llm.picked;
+          const emotion = detectEmotion(text);
+          const rng = mulberry32((hashText(text || 'default') + variant * 13331 + Math.floor(Math.random() * 1000000)) >>> 0);
+          const archetype = chooseArchetype(intent, rng, emotion);
+          return {
+            archetype: `${archetype.name}`,
+            formula: friendlyFormula(intent, picked),
+            opening: llm.opening || pickFresh((emotionProfiles[emotion] || emotionProfiles.neutral).openers, rng),
+            breakdown: llm.breakdown || pickFresh((emotionProfiles[emotion] || emotionProfiles.neutral).mirrors, rng),
+            bridge: llm.bridge || pickFresh(bridgeTemplates, rng),
+            bartenderPitch: llm.bartenderPitch || `${picked.desc} 这杯比较温和，也容易聊天，不会给你太大负担。`,
+            drink: picked,
+            orderLine: `你今晚适合 #${picked.name}`,
+            notice: notice(picked, archetype)
+          };
+        }
+      } catch (_) {}
 
       let attempts = 0;
       while (attempts < 8) {
         attempts += 1;
         const seed = (hashText(text || 'default') + variant * 10007 + attempts * 7919 + Math.floor(Math.random() * 1000000)) >>> 0;
         const rng = mulberry32(seed);
-        const intent = inferIntent(text);
         const emotion = detectEmotion(text);
         const intensity = detectIntensity(text);
         const archetype = chooseArchetype(intent, rng, emotion);
@@ -812,6 +918,12 @@
     document.getElementById('surpriseBtn').addEventListener('click', () => {
       answerVariant = 0;
       recommend({ freeText: '我今天心情一般，想喝一杯缓缓，但不想太烈。' });
+    });
+    document.getElementById('connectModelBtn').addEventListener('click', () => {
+      const key = getOrAskDeepSeekKey();
+      if (key) {
+        alert('DeepSeek 已连接，后续将优先使用大模型生成文案。');
+      }
     });
     document.getElementById('resetBtn').addEventListener('click', () => {
       document.getElementById('freeText').value = '';
