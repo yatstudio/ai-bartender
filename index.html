@@ -994,12 +994,7 @@
         <span>${strengthText(data.drink.strength)}</span>
         <span>${priceText(data.drink)}</span>
       `;
-      const sourceLabel =
-        data.source === 'deepseek' ? 'AI分析（DeepSeek）' :
-        data.source === 'safety' ? '安全模式' :
-        data.source === 'scenario' ? '场景模式' :
-        '本地兜底';
-      document.getElementById('softNote').textContent = `${data.notice}｜生成：${sourceLabel}`;
+      document.getElementById('softNote').textContent = `${data.notice}`;
 
       loadingText.classList.remove('show');
       stopEtaCountdown();
