@@ -857,9 +857,6 @@
       const text = (input.freeText || '').trim();
       const variant = Number(input.variant || 0);
       const intent = inferIntent(text);
-      const risk = detectSafetyRisk(text);
-      if (risk) return buildSafetyResponse(risk, drinks);
-      const scenario = detectSpecialScenario(text);
 
       // Prefer DeepSeek when key exists; fallback to local engine on any error.
       try {
@@ -887,6 +884,9 @@
         window.__lastModelError = err && err.message ? err.message : String(err || 'unknown');
       }
 
+      const risk = detectSafetyRisk(text);
+      if (risk) return buildSafetyResponse(risk, drinks);
+      const scenario = detectSpecialScenario(text);
       if (scenario) return buildScenarioResponse(scenario, drinks);
 
       let attempts = 0;
