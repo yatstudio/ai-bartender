@@ -445,6 +445,7 @@
 
   <script>
     const EMBEDDED_DEEPSEEK_API_KEY = 'sk-115148e5391649989c063ae148ee1537';
+    window.__lastModelError = '';
     const hints = [
       '今天刚下班，想放松一下，但也想跟人聊两句。',
       '我今天心情不太好，想喝一杯缓缓。',
@@ -640,6 +641,14 @@
       return { type: 'domestic_violence', urgent };
     }
 
+    function detectSpecialScenario(text) {
+      const t = (text || '').toLowerCase();
+      const foundMoney = /(捡到|拾到).*(钱|块|元)|捡了.*(100|一百|钱)/.test(t);
+      const moralDilemma = /该不该|要不要|能不能|应该不应该|纠结|不知道/.test(t);
+      if (foundMoney && moralDilemma) return 'found_money_dilemma';
+      return null;
+    }
+
     function buildSafetyResponse(risk, drinks) {
       const safeDrink = drinks.find(d => d.name === '春夏') || drinks.find(d => ['none', 'low'].includes(d.strength)) || drinks[0];
       const urgentLine = risk.urgent
@@ -658,6 +667,25 @@
         notice: '若有紧急危险请优先报警（110）。如果方便，也尽快联系身边可信任的人陪你。',
         source: 'safety'
       };
+    }
+
+    function buildScenarioResponse(type, drinks) {
+      if (type === 'found_money_dilemma') {
+        const safeDrink = drinks.find(d => d.name === '春夏') || drinks.find(d => ['none', 'low'].includes(d.strength)) || drinks[0];
+        return {
+          archetype: '清醒判断型',
+          formula: '先做对的事，再决定怎么庆祝',
+          opening: '你这个纠结很正常，而且你愿意想“该不该”，说明你是个有分寸的人。',
+          breakdown: '这种情况我会建议先做一件稳妥的事：先尝试找失主（问问附近店家/物业/原地等一会儿）。\n\n如果一段时间确实找不到，再决定怎么处理，这样你心里会更踏实，也不会有负担。',
+          bridge: '先把这件事处理得问心无愧，再去放松，心情会更轻松。',
+          bartenderPitch: `${safeDrink.desc} 这杯适合你现在这种“想稳一点、先把事想清楚”的状态。`,
+          drink: safeDrink,
+          orderLine: `你今晚适合 #${safeDrink.name}`,
+          notice: '你不是小题大做，你是在认真对待自己的价值感。',
+          source: 'scenario'
+        };
+      }
+      return null;
     }
 
     function intensityLine(intensity) {
@@ -831,6 +859,8 @@
       const intent = inferIntent(text);
       const risk = detectSafetyRisk(text);
       if (risk) return buildSafetyResponse(risk, drinks);
+      const scenario = detectSpecialScenario(text);
+      if (scenario) return buildScenarioResponse(scenario, drinks);
 
       // Prefer DeepSeek when key exists; fallback to local engine on any error.
       try {
@@ -854,7 +884,9 @@
             source: 'deepseek'
           };
         }
-      } catch (_) {}
+      } catch (err) {
+        window.__lastModelError = err && err.message ? err.message : String(err || 'unknown');
+      }
 
       let attempts = 0;
       while (attempts < 8) {
@@ -961,8 +993,16 @@
         <span>${strengthText(data.drink.strength)}</span>
         <span>${priceText(data.drink)}</span>
       `;
-      const sourceLabel = data.source === 'deepseek' ? 'DeepSeek' : data.source === 'safety' ? '安全模式' : '本地兜底';
-      document.getElementById('softNote').textContent = `${data.notice}｜生成：${sourceLabel}`;
+      const sourceLabel =
+        data.source === 'deepseek' ? 'DeepSeek' :
+        data.source === 'safety' ? '安全模式' :
+        data.source === 'scenario' ? '场景模式' :
+        '本地兜底';
+      const cfg = getDeepSeekConfig();
+      const modelHint = (sourceLabel === '本地兜底' && cfg.apiKey && window.__lastModelError)
+        ? `｜DeepSeek失败：${window.__lastModelError}`
+        : '';
+      document.getElementById('softNote').textContent = `${data.notice}｜生成：${sourceLabel}${modelHint}`;
 
       loadingText.classList.remove('show');
       stopEtaCountdown();
