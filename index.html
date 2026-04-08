@@ -356,6 +356,7 @@
         <button class="secondary" id="resetBtn">重来</button>
       </div>
       <div class="loading" id="loadingText">AI 打酒师正在读你的状态<span class="dots"></span></div>
+      <div class="loading" id="errorText" style="display:none;color:#fca5a5;">服务暂时不可用，请检查后端 /recommend 接口是否可访问。</div>
     </div>
 
   </div>
@@ -420,16 +421,35 @@
     }
 
     async function recommend(payload) {
+      const errorText = document.getElementById('errorText');
       loadingText.classList.add('show');
+      errorText.style.display = 'none';
       resultOverlay.classList.remove('show');
       clearShow();
 
-      const res = await fetch('/recommend', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...payload, variant: answerVariant })
-      });
-      const data = await res.json();
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 12000);
+
+      let data;
+      try {
+        const res = await fetch('/recommend', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...payload, variant: answerVariant }),
+          signal: controller.signal
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        data = await res.json();
+      } catch (err) {
+        loadingText.classList.remove('show');
+        errorText.textContent = err.name === 'AbortError'
+          ? '请求超时：请确认后端服务是否在运行，并且 /recommend 可访问。'
+          : `请求失败：${err.message}。请确认后端服务是否在运行。`;
+        errorText.style.display = 'block';
+        return;
+      } finally {
+        clearTimeout(timer);
+      }
 
       document.getElementById('archetype').textContent = `今晚你的微醺原型：${data.archetype}`;
       document.getElementById('formula').textContent = `推荐公式：${data.formula}`;
@@ -465,6 +485,8 @@
       resultOverlay.classList.remove('show');
       clearShow();
       loadingText.classList.remove('show');
+      const errorText = document.getElementById('errorText');
+      errorText.style.display = 'none';
     });
     function backHome() {
       resultOverlay.classList.remove('show');
