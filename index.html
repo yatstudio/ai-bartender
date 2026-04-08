@@ -632,6 +632,34 @@
       return 'mid';
     }
 
+    function detectSafetyRisk(text) {
+      const t = (text || '').toLowerCase();
+      const domesticViolence = /家暴|打我|被打|殴打|暴力|掐我|扇我|踢我|威胁我|控制我|不让我出门|不让我联系|人身安全|救命/.test(t);
+      if (!domesticViolence) return null;
+      const urgent = /现在|正在|刚刚|又|还在|继续|立刻|马上|救命|今晚/.test(t);
+      return { type: 'domestic_violence', urgent };
+    }
+
+    function buildSafetyResponse(risk, drinks) {
+      const safeDrink = drinks.find(d => d.name === '春夏') || drinks.find(d => ['none', 'low'].includes(d.strength)) || drinks[0];
+      const urgentLine = risk.urgent
+        ? '如果你现在正处在危险里，请先离开现场到安全的地方，并立刻拨打 110。'
+        : '先把你的人身安全放在第一位，任何时候都值得先保护自己。';
+
+      return {
+        archetype: '安全优先',
+        formula: '先保护你自己',
+        opening: '你愿意说出来已经很不容易了。被打、被家暴不是你的错。',
+        breakdown: `${urgentLine}\n\n你可以先做三步：1）先去安全地点；2）联系你信任的人；3）保留伤情和聊天证据。`,
+        bridge: '现在最重要的不是喝什么，而是你先安全。',
+        bartenderPitch: '等你先安全下来，我们再慢慢聊怎么照顾情绪。',
+        drink: safeDrink,
+        orderLine: `你今晚先照顾自己 #${safeDrink.name}`,
+        notice: '若有紧急危险请优先报警（110）。如果方便，也尽快联系身边可信任的人陪你。',
+        source: 'safety'
+      };
+    }
+
     function intensityLine(intensity) {
       const pool = {
         high: ['我知道你现在感受很强烈，我们先稳住。', '先把情绪落地一点，你会舒服很多。', '先别急着扛，先照顾你自己。'],
@@ -801,6 +829,8 @@
       const text = (input.freeText || '').trim();
       const variant = Number(input.variant || 0);
       const intent = inferIntent(text);
+      const risk = detectSafetyRisk(text);
+      if (risk) return buildSafetyResponse(risk, drinks);
 
       // Prefer DeepSeek when key exists; fallback to local engine on any error.
       try {
@@ -820,7 +850,8 @@
             bartenderPitch: llm.bartenderPitch || `${picked.desc} 这杯比较温和，也容易聊天，不会给你太大负担。`,
             drink: picked,
             orderLine: `你今晚适合 #${picked.name}`,
-            notice: notice(picked, archetype)
+            notice: notice(picked, archetype),
+            source: 'deepseek'
           };
         }
       } catch (_) {}
@@ -851,7 +882,8 @@
           bartenderPitch: narrative.bartenderPitch,
           drink: picked,
           orderLine: `你今晚适合 #${picked.name}`,
-          notice: notice(picked, archetype)
+          notice: notice(picked, archetype),
+          source: 'local'
         };
       }
 
@@ -929,7 +961,8 @@
         <span>${strengthText(data.drink.strength)}</span>
         <span>${priceText(data.drink)}</span>
       `;
-      document.getElementById('softNote').textContent = data.notice;
+      const sourceLabel = data.source === 'deepseek' ? 'DeepSeek' : data.source === 'safety' ? '安全模式' : '本地兜底';
+      document.getElementById('softNote').textContent = `${data.notice}｜生成：${sourceLabel}`;
 
       loadingText.classList.remove('show');
       stopEtaCountdown();
