@@ -478,16 +478,16 @@
     });
 
     const archetypes = [
-      { key: 'moon-drifter', name: '月亮漂流型', formula: '疲惫感 × 轻社交欲 × 低压入口', triggers: ['relax', 'talk', 'light'], drinks: ['春夏', '海边假日', '山野曼波', '0糖皮尔森'] },
-      { key: 'spark-hunter', name: '火花猎手型', formula: '新鲜感 × 记忆点 × 可开场', triggers: ['surprise', 'talk'], drinks: ['醋不及防', '不止苏梅', '花海巡游蜜瓜龙', '屑橙2.0'] },
-      { key: 'signal-sender', name: '信号发射型', formula: '社交意图 × 好入口 × 柔和辨识度', triggers: ['talk', 'light'], drinks: ['香波精灵', '马冬莓', '鲜榨乌龙荔枝啵啵', '海边假日'] },
+      { key: 'moon-drifter', name: '月亮漂流型', formula: '疲惫感 × 轻社交欲 × 低压入口', triggers: ['relax', 'talk', 'light'], drinks: ['春夏', '海边假日', '山野曼波', '开心麦酒'] },
+      { key: 'spark-hunter', name: '火花猎手型', formula: '新鲜感 × 记忆点 × 可开场', triggers: ['surprise', 'talk'], drinks: ['就酱', '不止苏梅', '花海巡游蜜瓜龙', '不是苹果'] },
+      { key: 'signal-sender', name: '信号发射型', formula: '社交意图 × 好入口 × 柔和辨识度', triggers: ['talk', 'light'], drinks: ['花束般的恋爱', '重构草莓', '鲜榨乌龙荔枝啵啵', '海边假日'] },
       { key: 'idea-summoner', name: '灵感召唤型', formula: '表达欲 × 清醒度 × 话题延展性', triggers: ['project', 'fresh'], drinks: ['嬉皮小子', '西海岸的梦', '日出的人'] },
       { key: 'velvet-celebrant', name: '丝绒庆典型', formula: '仪式感 × 微醺感 × 视觉存在感', triggers: ['celebrate', 'surprise'], drinks: ['不止苏梅', '一次重逢', '西海岸的梦'] },
-      { key: 'soft-healer', name: '软糖治愈型', formula: '甜口安全感 × 降低门槛 × 被温柔接住', triggers: ['sweet', 'light'], drinks: ['马冬莓', '泰奶减法酪', '鲜榨乌龙荔枝啵啵'] },
-      { key: 'quiet-observer', name: '安静观察型', formula: '低存在感 × 慢进入 × 给自己留余地', triggers: ['solo', 'light'], drinks: ['春夏', '0糖皮尔森', '听涛'] },
-      { key: 'bitter-speaker', name: '苦口表达型', formula: '苦感接受度 × 表达欲 × 个性边缘感', triggers: ['bitter', 'project'], drinks: ['嬉皮小子', '西海岸的梦', '一次重逢'] },
-      { key: 'clean-safe', name: '干净安全型', formula: '不出错 × 长聊天 × 低负担', triggers: ['fresh', 'light'], drinks: ['0糖皮尔森', '日出的人', '春夏'] },
-      { key: 'curious-roamer', name: '游牧尝鲜型', formula: '好奇心 × 风味探索 × 不想重复', triggers: ['surprise', 'sour'], drinks: ['醋不及防', '屑橙2.0', '花海巡游蜜瓜龙', '不止苏梅'] }
+      { key: 'soft-healer', name: '软糖治愈型', formula: '甜口安全感 × 降低门槛 × 被温柔接住', triggers: ['sweet', 'light'], drinks: ['重构草莓', '泰奶咸法酪', '鲜榨乌龙荔枝啵啵'] },
+      { key: 'quiet-observer', name: '安静观察型', formula: '低存在感 × 慢进入 × 给自己留余地', triggers: ['solo', 'light'], drinks: ['春夏', '开心麦酒', '听涛'] },
+      { key: 'bitter-speaker', name: '苦口表达型', formula: '苦感接受度 × 表达欲 × 个性边缘感', triggers: ['bitter', 'project'], drinks: ['嬉皮小子', '西海岸的梦', '一次重逢', '尼尔森采收'] },
+      { key: 'clean-safe', name: '干净安全型', formula: '不出错 × 长聊天 × 低负担', triggers: ['fresh', 'light'], drinks: ['开心麦酒', '日出的人', '春夏'] },
+      { key: 'curious-roamer', name: '游牧尝鲜型', formula: '好奇心 × 风味探索 × 不想重复', triggers: ['surprise', 'sour'], drinks: ['就酱', '不是苹果', '花海巡游蜜瓜龙', '不止苏梅'] }
     ];
 
     let drinksCache = null;
@@ -746,17 +746,17 @@
       if (archetype.drinks.includes(drink.name)) score += 6;
       if (intent.wantsLight && ['none', 'low'].includes(drink.strength)) score += 6;
       if (intent.wantsLight && drink.strength === 'high') score -= 4;
-      if (intent.wantsSweet && ['马冬莓', '泰奶减法酪', '鲜榨乌龙荔枝啵啵', '香波精灵'].includes(drink.name)) score += 5;
-      if (intent.wantsFresh && ['春夏', '0糖皮尔森', '日出的人', '山野曼波'].includes(drink.name)) score += 5;
-      if (intent.wantsSour && ['香波精灵', '海边假日', '醋不及防', '屑橙2.0', '不止苏梅'].includes(drink.name)) score += 5;
-      if (intent.wantsBitter && ['嬉皮小子', '西海岸的梦', '一次重逢'].includes(drink.name)) score += 5;
-      if (intent.wantsTalk && ['香波精灵', '马冬莓', '鲜榨乌龙荔枝啵啵', '海边假日', '0糖皮尔森'].includes(drink.name)) score += 4;
+      if (intent.wantsSweet && ['重构草莓', '泰奶咸法酪', '鲜榨乌龙荔枝啵啵', '花束般的恋爱'].includes(drink.name)) score += 5;
+      if (intent.wantsFresh && ['春夏', '开心麦酒', '日出的人', '山野曼波'].includes(drink.name)) score += 5;
+      if (intent.wantsSour && ['花束般的恋爱', '海边假日', '就酱', '不是苹果', '不止苏梅'].includes(drink.name)) score += 5;
+      if (intent.wantsBitter && ['嬉皮小子', '西海岸的梦', '一次重逢', '尼尔森采收'].includes(drink.name)) score += 5;
+      if (intent.wantsTalk && ['花束般的恋爱', '重构草莓', '鲜榨乌龙荔枝啵啵', '海边假日', '开心麦酒'].includes(drink.name)) score += 4;
       if (intent.wantsProject && ['嬉皮小子', '西海岸的梦', '日出的人'].includes(drink.name)) score += 4;
-      if (intent.wantsRelax && ['春夏', '海边假日', '山野曼波', '0糖皮尔森'].includes(drink.name)) score += 5;
-      if (intent.wantsSurprise && ['醋不及防', '花海巡游蜜瓜龙', '不止苏梅', '屑橙2.0'].includes(drink.name)) score += 5;
+      if (intent.wantsRelax && ['春夏', '海边假日', '山野曼波', '开心麦酒'].includes(drink.name)) score += 5;
+      if (intent.wantsSurprise && ['就酱', '花海巡游蜜瓜龙', '不止苏梅', '不是苹果'].includes(drink.name)) score += 5;
       if (intent.wantsCelebrate && ['不止苏梅', '西海岸的梦', '一次重逢'].includes(drink.name)) score += 4;
-      if (intent.wantsSolo && ['春夏', '听涛', '0糖皮尔森'].includes(drink.name)) score += 4;
-      if (intent.gotScolded && ['春夏', '马冬莓', '海边假日', '泰奶减法酪'].includes(drink.name)) score += 5;
+      if (intent.wantsSolo && ['春夏', '听涛', '开心麦酒'].includes(drink.name)) score += 4;
+      if (intent.gotScolded && ['春夏', '重构草莓', '海边假日', '泰奶咸法酪'].includes(drink.name)) score += 5;
       if (intent.heartTired && ['春夏', '海边假日', '听涛'].includes(drink.name)) score += 4;
       return score;
     }
