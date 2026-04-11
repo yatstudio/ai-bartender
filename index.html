@@ -946,6 +946,7 @@
     let loadingTimer = null;
     let etaLeft = 0;
     const strengthText = (level) => ({ none: '无酒精', low: '低酒精', mid: '中等酒精', high: '偏高酒精' }[level] || '未知强度');
+    const sourceText = (source) => ({ deepseek: '模型来源：DeepSeek', local: '模型来源：本地规则引擎', safety: '模型来源：安全兜底', scenario: '模型来源：场景兜底' }[source] || '模型来源：未知');
     const priceText = (drink) => drink.priceLarge ? `¥${drink.priceSmall}/${drink.priceLarge}` : `¥${drink.priceSmall}`;
 
     function stopEtaCountdown() {
@@ -1009,6 +1010,7 @@
         <span>${data.drink.abv ? 'Vol ' + data.drink.abv + '%' : 'Vol 0%'}</span>
         <span>${strengthText(data.drink.strength)}</span>
         <span>${priceText(data.drink)}</span>
+        <span>${sourceText(data.source)}</span>
       `;
       document.getElementById('softNote').textContent = `${data.notice}`;
 
